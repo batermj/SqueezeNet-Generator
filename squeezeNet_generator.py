@@ -33,8 +33,8 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def generate_data_layer():
-    data_layer_str = '''name: "ResNet"
+ef generate_data_layer():
+    data_layer_str = '''name: "SqueezeNet"
 layer {
   name: "data"
   type: "Data"
@@ -51,8 +51,8 @@ layer {
     mean_value: 123
   }
   data_param {
-    source: "/ssd/dataset/ilsvrc12_train_lmdb/"
-    batch_size: 32
+    source: "caffe/final_data"
+    batch_size: 20
     backend: LMDB
   }
 }
@@ -72,7 +72,7 @@ layer {
     mean_value: 123
   }
   data_param {
-    source: "/ssd/dataset/ilsvrc12_train_lmdb/"
+    source: "caffe/final_val"
     batch_size: 25
     backend: LMDB
   }
