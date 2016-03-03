@@ -33,50 +33,51 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-ef generate_data_layer():
+def generate_data_layer():
     data_layer_str = '''name: "SqueezeNet"
-layer {
-  name: "data"
-  type: "Data"
-  top: "data"
-  top: "label"
-  include {
-    phase: TRAIN
-  }
-  transform_param {
-    mirror: true
-    crop_size: 224
-    mean_value: 104
-    mean_value: 117
-    mean_value: 123
-  }
-  data_param {
-    source: "caffe/final_data"
-    batch_size: 20
-    backend: LMDB
-  }
-}
-layer {
-  name: "data"
-  type: "Data"
-  top: "data"
-  top: "label"
-  include {
-    phase: TEST
-  }
-  transform_param {
-    mirror: false
-    crop_size: 224
-    mean_value: 104
-    mean_value: 117
-    mean_value: 123
-  }
-  data_param {
-    source: "caffe/final_val"
-    batch_size: 25
-    backend: LMDB
-  }
-}'''
+    layer {
+      name: "data"
+      type: "Data"
+      top: "data"
+      top: "label"
+      include {
+        phase: TRAIN
+      }
+      transform_param {
+        mirror: true
+        crop_size: 227
+        mean_value: 104
+        mean_value: 117
+        mean_value: 123
+      }
+      data_param {
+        source: "/ssd/dataset/ilsvrc12_train_lmdb/"
+        batch_size: 22
+        backend: LMDB
+      }
+    }
+    layer {
+      name: "data"
+      type: "Data"
+      top: "data"
+      top: "label"
+      include {
+        phase: TEST
+      }
+      transform_param {
+        mirror: false
+        crop_size: 227
+        mean_value: 104
+        mean_value: 117
+        mean_value: 123
+      }
+      data_param {
+        source: "/ssd/dataset/ilsvrc12_val_lmdb/"
+        batch_size: 25
+        backend: LMDB
+      }
+    }
+    '''
     return data_layer_str
 
 def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
