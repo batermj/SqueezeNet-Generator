@@ -9,7 +9,7 @@ If you find SqueezeNet useful in your research, please consider citing the Squee
     Journal = {arXiv:1602.07360},
     Year = {2016}
 }
-
+"""
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 
