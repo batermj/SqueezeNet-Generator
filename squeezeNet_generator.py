@@ -10,7 +10,6 @@ If you find SqueezeNet useful in your research, please consider citing the Squee
     Year = {2016}
 }
 
-"""
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 
@@ -81,8 +80,7 @@ def generate_data_layer():
     return data_layer_str
 
 def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
-    conv_layer_str = '''
-layer {
+    conv_layer_str = '''layer {
   name: "%s"
   type: "Convolution"
   bottom: "%s"
@@ -112,8 +110,7 @@ layer {
     return conv_layer_str
 
 def generate_pooling_layer(kernel_size, stride, pool_type, layer_name, bottom, top):
-    pool_layer_str = '''
-layer {
+    pool_layer_str = '''layer {
   name: "%s"
   type: "Pooling"
   bottom: "%s"
@@ -127,8 +124,7 @@ layer {
     return pool_layer_str
 
 def generate_eltwise_layer(layer_name, bottom_1, bottom_2, top, op_type="SUM"):
-    eltwise_layer_str = '''
-layer {
+    eltwise_layer_str = '''layer {
   name: "%s"
   type: "Eltwise"
   bottom: "%s"
@@ -141,8 +137,7 @@ layer {
     return eltwise_layer_str
 
 def generate_activation_layer(layer_name, bottom, top, act_type="ReLU"):
-    act_layer_str = '''
-layer {
+    act_layer_str = '''layer {
   name: "%s"
   type: "%s"
   bottom: "%s"
@@ -151,8 +146,7 @@ layer {
     return act_layer_str
 
 def generate_softmax_loss(bottom):
-    softmax_loss_str = '''
-layer {
+    softmax_loss_str = '''layer {
   name: "loss"
   type: "SoftmaxWithLoss"
   bottom: "%s"
@@ -185,8 +179,7 @@ layer {
     return softmax_loss_str
 
 def generate_bn_layer(layer_name, bottom, top):
-    bn_layer_str = '''
-layer {
+    bn_layer_str = '''layer {
   name: "%s"
   type: "BatchNorm"
   bottom: "%s"
@@ -204,8 +197,7 @@ layer {
     return bn_layer_str
 
 def generate_concat_layer(layer_name, bottom1, bottom2, top):
-    concat_layer_str = '''
-layer{
+    concat_layer_str = '''layer{
     name: "%s"
     type: "Concat"
     bottom: "%s"
@@ -215,8 +207,7 @@ layer{
     return concat_layer_str
 
 def generate_dropout_layer(layer_name, bottom):
-    drop_str = '''
-layer{
+    drop_str = '''layer{
       name: "%s"
       type: "Dropout"
       bottom: "%s"
@@ -303,7 +294,7 @@ def generate_typeB(layer_name, bottom, top, first_size, middle_size, batchNorm):
     return a_str
 
 
-def generate_train_val():
+def generate_fully_train_val(BatchNorm):
     network_str = generate_data_layer()
 
     last_top = 'data'
@@ -316,25 +307,24 @@ def generate_train_val():
 
     '''stage 1'''
     last_top = 'pool1'
-    network_str += generate_typeA(2, last_top, '2/end', 16, 64, True)
-    network_str += generate_typeB(3, '2/end', '3/end', 16, 64, True)
-    network_str += generate_typeA(4, '3/end', '4/end', 32, 128, True)
+    network_str += generate_typeA(2, last_top, '2/end', 16, 64, BatchNorm)
+    network_str += generate_typeB(3, '2/end', '3/end', 16, 64, BatchNorm)
+    network_str += generate_typeA(4, '3/end', '4/end', 32, 128, BatchNorm)
 
     network_str += generate_pooling_layer(3,2,'MAX', 'pool4', '4/end', 'pool4')
 
-    network_str += generate_typeB(5, 'pool4', '5/end', 32, 128, True)
-    network_str += generate_typeA(6, '5/end', '6/end', 48, 192, True)
-    network_str += generate_typeB(7, '6/end', '7/end', 48, 192, True)
-    network_str += generate_typeA(8, '7/end', '8/end', 64, 256, True) 
+    network_str += generate_typeB(5, 'pool4', '5/end', 32, 128, BatchNorm)
+    network_str += generate_typeA(6, '5/end', '6/end', 48, 192, BatchNorm)
+    network_str += generate_typeB(7, '6/end', '7/end', 48, 192, BatchNorm)
+    network_str += generate_typeA(8, '7/end', '8/end', 64, 256, BatchNorm) 
 
     network_str += generate_pooling_layer(3,2,'MAX', 'pool8', '8/end', 'pool8')
-    network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, True)   
+    network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, BatchNorm)   
 
     network_str += generate_dropout_layer('drop9', '9/end')
     network_str += generate_conv_layer(1,1000,1,0, 'conv10', '9/end', 'conv10')
     network_str += generate_activation_layer('relu10', 'conv10', 'conv10')
-    network_str += '''
-layer {
+    network_str += '''layer {
       name: "pool10"
       type: "Pooling"
       bottom: "conv10"
@@ -351,7 +341,7 @@ layer {
 
 
 def main():
-    network_str = generate_train_val()
+    network_str = generate_fully_train_val(True)
 
     fp = open('train.prototxt', 'w')
     fp.write(network_str)
