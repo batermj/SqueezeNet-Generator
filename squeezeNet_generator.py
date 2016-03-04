@@ -10,6 +10,7 @@ If you find SqueezeNet useful in your research, please consider citing the Squee
     Year = {2016}
 }
 """
+
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 
@@ -33,49 +34,49 @@ def parse_args():
     return args
 
 def generate_data_layer():
-    data_layer_str = '''name: "SqueezeNet"
-    layer {
-      name: "data"
-      type: "Data"
-      top: "data"
-      top: "label"
-      include {
-        phase: TRAIN
-      }
-      transform_param {
-        mirror: true
-        crop_size: 227
-        mean_value: 104
-        mean_value: 117
-        mean_value: 123
-      }
-      data_param {
-        source: "/ssd/dataset/ilsvrc12_train_lmdb/"
-        batch_size: 22
-        backend: LMDB
-      }
-    }
-    layer {
-      name: "data"
-      type: "Data"
-      top: "data"
-      top: "label"
-      include {
-        phase: TEST
-      }
-      transform_param {
-        mirror: false
-        crop_size: 227
-        mean_value: 104
-        mean_value: 117
-        mean_value: 123
-      }
-      data_param {
-        source: "/ssd/dataset/ilsvrc12_val_lmdb/"
-        batch_size: 25
-        backend: LMDB
-      }
-    }
+    data_layer_str = '''name: "B0ku1Net"
+layer {
+  name: "data"
+  type: "Data"
+  top: "data"
+  top: "label"
+  include {
+    phase: TRAIN
+  }
+  transform_param {
+    mirror: true
+    crop_size: 64
+    mean_value: 104
+    mean_value: 117
+    mean_value: 123
+  }
+  data_param {
+    source: "caffe/final_data"
+    batch_size: 20
+    backend: LMDB
+  }
+}
+layer {
+  name: "data"
+  type: "Data"
+  top: "data"
+  top: "label"
+  include {
+    phase: TEST
+  }
+  transform_param {
+    mirror: false
+    crop_size: 64
+    mean_value: 104
+    mean_value: 117
+    mean_value: 123
+  }
+  data_param {
+    source: "caffe/final_val"
+    batch_size: 10
+    backend: LMDB
+  }
+}
     '''
     return data_layer_str
 
@@ -319,10 +320,16 @@ def generate_fully_train_val(BatchNorm):
     network_str += generate_typeA(8, '7/end', '8/end', 64, 256, BatchNorm) 
 
     network_str += generate_pooling_layer(3,2,'MAX', 'pool8', '8/end', 'pool8')
-    network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, BatchNorm)   
+    network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, BatchNorm)
 
-    network_str += generate_dropout_layer('drop9', '9/end')
-    network_str += generate_conv_layer(1,1000,1,0, 'conv10', '9/end', 'conv10')
+    network_str += generate_typeA(10, '9/end', '10/end', 96, 384, BatchNorm)
+    network_str += generate_typeB(11, '10/end', '11/end', 96, 384, BatchNorm)
+    network_str += generate_typeA(12, '11/end', '12/end', 128, 512, BatchNorm) 
+    network_str += generate_typeB(13, '12/end', '13/end', 128, 512, BatchNorm)    
+
+
+    network_str += generate_dropout_layer('drop9', '13/end')
+    network_str += generate_conv_layer(1,200,1,0, 'conv10', '13/end', 'conv10')
     network_str += generate_activation_layer('relu10', 'conv10', 'conv10')
     network_str += '''layer {
       name: "pool10"
