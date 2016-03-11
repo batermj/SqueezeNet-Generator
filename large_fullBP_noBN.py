@@ -34,18 +34,19 @@ def parse_args():
     return args
 
 def generate_data_layer():
-    data_layer_str = '''name: "large_SqueezeNet"
+    data_layer_str = '''
+name: "large_SqueezeNet"
 layer {
-  name: "data"
-  type: "Data"
-  top: "data"
-  top: "label"
-  include {
+    name: "data"
+    type: "Data"
+    top: "data"
+    top: "label"
+    include {
     phase: TRAIN
   }
   transform_param {
     mirror: true
-    crop_size: 64
+    crop_size: 227
     mean_value: 104
     mean_value: 117
     mean_value: 123
@@ -66,7 +67,7 @@ layer {
   }
   transform_param {
     mirror: false
-    crop_size: 64
+    crop_size: 227
     mean_value: 104
     mean_value: 117
     mean_value: 123
@@ -81,7 +82,8 @@ layer {
     return data_layer_str
 
 def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
-    conv_layer_str = '''layer {
+    conv_layer_str = '''
+layer {
   name: "%s"
   type: "Convolution"
   bottom: "%s"
@@ -111,7 +113,8 @@ def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom
     return conv_layer_str
 
 def generate_pooling_layer(kernel_size, stride, pool_type, layer_name, bottom, top):
-    pool_layer_str = '''layer {
+    pool_layer_str = '''
+layer {
   name: "%s"
   type: "Pooling"
   bottom: "%s"
@@ -125,7 +128,8 @@ def generate_pooling_layer(kernel_size, stride, pool_type, layer_name, bottom, t
     return pool_layer_str
 
 def generate_eltwise_layer(layer_name, bottom_1, bottom_2, top, op_type="SUM"):
-    eltwise_layer_str = '''layer {
+    eltwise_layer_str = '''
+layer {
   name: "%s"
   type: "Eltwise"
   bottom: "%s"
@@ -138,7 +142,8 @@ def generate_eltwise_layer(layer_name, bottom_1, bottom_2, top, op_type="SUM"):
     return eltwise_layer_str
 
 def generate_activation_layer(layer_name, bottom, top, act_type="ReLU"):
-    act_layer_str = '''layer {
+    act_layer_str = '''
+layer {
   name: "%s"
   type: "%s"
   bottom: "%s"
@@ -147,7 +152,8 @@ def generate_activation_layer(layer_name, bottom, top, act_type="ReLU"):
     return act_layer_str
 
 def generate_softmax_loss(bottom):
-    softmax_loss_str = '''layer {
+    softmax_loss_str = '''
+layer {
   name: "loss"
   type: "SoftmaxWithLoss"
   bottom: "%s"
@@ -180,7 +186,8 @@ layer {
     return softmax_loss_str
 
 def generate_bn_layer(layer_name, bottom, top):
-    bn_layer_str = '''layer {
+    bn_layer_str = '''
+layer {
   name: "%s"
   type: "BatchNorm"
   bottom: "%s"
@@ -198,7 +205,8 @@ def generate_bn_layer(layer_name, bottom, top):
     return bn_layer_str
 
 def generate_concat_layer(layer_name, bottom1, bottom2, top):
-    concat_layer_str = '''layer{
+    concat_layer_str = '''
+    layer{
     name: "%s"
     type: "Concat"
     bottom: "%s"
@@ -208,7 +216,8 @@ def generate_concat_layer(layer_name, bottom1, bottom2, top):
     return concat_layer_str
 
 def generate_dropout_layer(layer_name, bottom):
-    drop_str = '''layer{
+    drop_str = '''
+    layer{
       name: "%s"
       type: "Dropout"
       bottom: "%s"
@@ -337,7 +346,8 @@ def generate_fully_train_val(BatchNorm):
     network_str += generate_conv_layer(1, 1000,1,0, 'conv_final', '9/end', 'conv_final', filler = 'gaussian')
     # def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
     network_str += generate_activation_layer('relu10', 'conv_final', 'conv_final')
-    network_str += '''layer {
+    network_str += '''
+layer {
       name: "pool10"
       type: "Pooling"
       bottom: "conv_final"
