@@ -165,7 +165,7 @@ layer {
   type: "Accuracy"
   bottom: "%s"
   bottom: "label"
-  top: "acc/top-1"
+  top: "accuracy_top1"
   include {
     # phase: TEST
   }
@@ -175,7 +175,7 @@ layer {
   type: "Accuracy"
   bottom: "%s"
   bottom: "label"
-  top: "acc/top-5"
+  top: "accuracy_top5"
   include {
     # phase: TEST
   }
