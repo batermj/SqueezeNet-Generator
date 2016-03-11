@@ -155,7 +155,7 @@ def generate_softmax_loss(bottom):
   top: "loss"
 }
 layer {
-  name: "acc/top-1"
+  name: "accuracy_top1"
   type: "Accuracy"
   bottom: "%s"
   bottom: "label"
@@ -165,7 +165,7 @@ layer {
   }
 }
 layer {
-  name: "acc/top-5"
+  name: "accuracy_top5"
   type: "Accuracy"
   bottom: "%s"
   bottom: "label"
