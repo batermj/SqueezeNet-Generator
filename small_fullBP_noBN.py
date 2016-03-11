@@ -357,7 +357,7 @@ def generate_fully_train_val(BatchNorm):
     if BatchNorm:
       network_str += generate_bn_layer('conv_final_bn', 'conv_final', 'conv_final_bn')
       network_str += generate_activation_layer('relu10', 'conv_final_bn', 'conv_final_bn')
-      extra='bn'
+      extra='_bn'
     else:
       network_str += generate_activation_layer('relu10', 'conv_final', 'conv_final')
       extra=''
