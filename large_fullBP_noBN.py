@@ -51,8 +51,8 @@ layer {
     mean_value: 123
   }
   data_param {
-    source: "/ssd/dataset/ilsvrc12_train_lmdb"
-    batch_size: 30
+    source: "caffe/final_data"
+    batch_size: 20
     backend: LMDB
   }
 }
@@ -72,8 +72,8 @@ layer {
     mean_value: 123
   }
   data_param {
-    source: "/ssd/dataset/ilsvrc12_val_lmdb"
-    batch_size: 25
+    source: "caffe/final_val"
+    batch_size: 10
     backend: LMDB
   }
 }
@@ -161,7 +161,7 @@ layer {
   bottom: "label"
   top: "acc/top-1"
   include {
-    #phase: TEST
+    # phase: TEST
   }
 }
 layer {
@@ -171,7 +171,7 @@ layer {
   bottom: "label"
   top: "acc/top-5"
   include {
-    #phase: TEST
+    # phase: TEST
   }
   accuracy_param {
     top_k: 5
@@ -301,40 +301,38 @@ def generate_fully_train_val(BatchNorm):
     last_top = 'data'
     '''before stage'''
     last_top = 'data'
-    network_str += generate_conv_layer(7, 64, 2, 0, 'conv1', last_top, 'conv1')
-    network_str += generate_bn_layer('conv1_bn', 'conv1', 'conv1_bn')
-    network_str += generate_activation_layer('conv1_relu', 'conv1_bn', 'conv1_bn', 'ReLU')
-    network_str += generate_pooling_layer(3, 2, 'MAX', 'pool1', 'conv1_bn', 'pool1')
+    network_str += generate_conv_layer(7, 96, 2, 0, 'conv1', last_top, 'conv1')
+    if (BatchNorm):
+      network_str += generate_bn_layer('conv1_bn', 'conv1', 'conv1_bn')
+      network_str += generate_activation_layer('conv1_relu', 'conv1_bn', 'conv1_bn', 'ReLU')
+      network_str += generate_pooling_layer(3, 2, 'MAX', 'pool1', 'conv1_bn', 'pool1')
+    else:
+      network_str += generate_activation_layer('conv1_relu', 'conv1', 'conv1', 'ReLU')
+      network_str += generate_pooling_layer(3, 2, 'MAX', 'pool1', 'conv1', 'pool1')
 
-    '''stage 1'''
-    last_top = 'pool1'
-    network_str += generate_typeA(2, last_top, '2/end', 16, 64, BatchNorm)
-    network_str += generate_typeB(3, '2/end', '3/end', 16, 64, BatchNorm)
-    network_str += generate_typeA(4, '3/end', '4/end', 32, 128, BatchNorm)
+        
+    network_str += generate_typeA(2, 'pool1', '2/end', 64, 64, BatchNorm)
+    network_str += generate_typeB(3, '2/end', '3/end', 64, 64, BatchNorm)
+    network_str += generate_typeA(4, '3/end', '4/end', 128, 128, BatchNorm)
 
     network_str += generate_pooling_layer(3,2,'MAX', 'pool4', '4/end', 'pool4')
 
-    network_str += generate_typeB(5, 'pool4', '5/end', 32, 128, BatchNorm)
-    network_str += generate_typeA(6, '5/end', '6/end', 48, 192, BatchNorm)
-    network_str += generate_typeB(7, '6/end', '7/end', 48, 192, BatchNorm)
-    network_str += generate_typeA(8, '7/end', '8/end', 64, 256, BatchNorm) 
+    network_str += generate_typeB(5, 'pool4', '5/end', 128, 128, BatchNorm)
+    network_str += generate_typeA(6, '5/end', '6/end', 192, 192, BatchNorm)
+    network_str += generate_typeB(7, '6/end', '7/end', 192, 192, BatchNorm)
+    network_str += generate_typeA(8, '7/end', '8/end', 256, 256, BatchNorm) 
 
     network_str += generate_pooling_layer(3,2,'MAX', 'pool8', '8/end', 'pool8')
-    network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, BatchNorm)
+    network_str += generate_typeB(9, 'pool8', '9/end', 256, 256, BatchNorm)
 
-    network_str += generate_typeA(10, '9/end', '10/end', 96, 384, BatchNorm)
-    network_str += generate_typeB(11, '10/end', '11/end', 96, 384, BatchNorm)
-    network_str += generate_typeA(12, '11/end', '12/end', 128, 512, BatchNorm) 
-    network_str += generate_typeB(13, '12/end', '13/end', 128, 512, BatchNorm)    
-
-
-    network_str += generate_dropout_layer('drop9', '13/end')
-    network_str += generate_conv_layer(1,200,1,0, 'conv10', '13/end', 'conv10')
-    network_str += generate_activation_layer('relu10', 'conv10', 'conv10')
+    network_str += generate_dropout_layer('drop9', '9/end')
+    network_str += generate_conv_layer(1, 1000,1,0, 'conv_final', '9/end', 'conv_final', filler = 'gaussian')
+    # def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
+    network_str += generate_activation_layer('relu10', 'conv_final', 'conv_final')
     network_str += '''layer {
       name: "pool10"
       type: "Pooling"
-      bottom: "conv10"
+      bottom: "conv_final"
       top: "pool10"
       pooling_param {
         pool: AVE
@@ -348,7 +346,7 @@ def generate_fully_train_val(BatchNorm):
 
 
 def main():
-    network_str = generate_fully_train_val(True)
+    network_str = generate_fully_train_val(False)
 
     fp = open('train.prototxt', 'w')
     fp.write(network_str)
