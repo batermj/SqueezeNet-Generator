@@ -53,7 +53,7 @@ layer {
   }
   data_param {
     source: "/ssd/dataset/ilsvrc12_train_lmdb/"
-    batch_size: 32
+    batch_size: {{batch_size}}
     backend: LMDB
   }
 }
@@ -82,6 +82,12 @@ layer {
     return data_layer_str
 
 def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
+    tmp =''
+    if filler == 'gaussian':
+      tmp = '''      
+      mean: 0.0
+      std: 0.01
+      '''
     conv_layer_str = '''
 layer {
   name: "%s"
@@ -103,13 +109,13 @@ layer {
     stride: %d
     weight_filler {
       type: "%s"
-    }
+    ''' %(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler) + tmp + '''}
     bias_filler {
       type: "constant"
       value: 0
     }
   }
-}'''%(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler)
+}'''
     return conv_layer_str
 
 def generate_pooling_layer(kernel_size, stride, pool_type, layer_name, bottom, top):
@@ -223,7 +229,7 @@ def generate_dropout_layer(layer_name, bottom):
       bottom: "%s"
       top: "%s"
       dropout_param {
-        dropout_ratio: 0.5
+        dropout_ratio: {{dropout}}
       }
     }'''%(layer_name, bottom, bottom)
     return drop_str
@@ -366,7 +372,7 @@ layer {
 def main():
     network_str = generate_fully_train_val(False)
 
-    fp = open('train.prototxt', 'w')
+    fp = open('trainval.template', 'w')
     fp.write(network_str)
     fp.close()
 
