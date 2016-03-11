@@ -82,6 +82,12 @@ layer {
     return data_layer_str
 
 def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
+    addition=''
+    if filler =='gaussian':
+      addition = '''
+      mean: 0.0
+      std: 0.01
+      '''
     conv_layer_str = '''
 layer {
   name: "%s"
@@ -103,13 +109,14 @@ layer {
     stride: %d
     weight_filler {
       type: "%s"
+'''%(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler) + addition + '''
     }
     bias_filler {
       type: "constant"
       value: 0
     }
   }
-}'''%(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler)
+}'''
     return conv_layer_str
 
 def generate_pooling_layer(kernel_size, stride, pool_type, layer_name, bottom, top):
