@@ -350,10 +350,21 @@ def generate_fully_train_val(BatchNorm):
     network_str += generate_pooling_layer(3,2,'MAX', 'pool8', '8/end', 'pool8')
     network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, BatchNorm)
 
-    network_str += generate_dropout_layer('drop9', '9/end')
+    if BatchNorm=='0' or BatchNorm==0:
+      network_str += generate_dropout_layer('drop9', '9/end')
     network_str += generate_conv_layer(1, 1000,1,0, 'conv_final', '9/end', 'conv_final', filler = 'gaussian')
-    # def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
-    network_str += generate_activation_layer('relu10', 'conv_final', 'conv_final')
+    
+    if BatchNorm:
+      network_str += generate_bn_layer('conv_final_bn', 'conv_final', 'conv_final_bn')
+      network_str += generate_activation_layer('relu10', 'conv_final_bn', 'conv_final')
+    else:
+      network_str += generate_activation_layer('relu10', 'conv_final', 'conv_final')
+      
+      
+
+
+
+
     network_str += '''
 layer {
       name: "pool10"
