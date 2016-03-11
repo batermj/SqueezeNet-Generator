@@ -82,9 +82,15 @@ layer {
     return data_layer_str
 
 def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
+<<<<<<< HEAD
     tmp =''
     if filler == 'gaussian':
       tmp = '''      
+=======
+    addition=''
+    if filler =='gaussian':
+      addition = '''
+>>>>>>> 3f4262bad3afe1359d2501040cdb8e1bba7b036b
       mean: 0.0
       std: 0.01
       '''
@@ -109,7 +115,12 @@ layer {
     stride: %d
     weight_filler {
       type: "%s"
+<<<<<<< HEAD
     ''' %(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler) + tmp + '''}
+=======
+'''%(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler) + addition + '''
+    }
+>>>>>>> 3f4262bad3afe1359d2501040cdb8e1bba7b036b
     bias_filler {
       type: "constant"
       value: 0
