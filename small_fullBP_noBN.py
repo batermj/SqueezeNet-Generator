@@ -320,6 +320,7 @@ def generate_typeB(layer_name, bottom, top, first_size, middle_size, batchNorm):
 
 
 def generate_fully_train_val(BatchNorm):
+    print "BatchNorm=", BatchNorm
     network_str = generate_data_layer()
 
     last_top = 'data'
@@ -371,7 +372,7 @@ layer {
 
 
 def main():
-    network_str = generate_fully_train_val(sys.argv[1])
+    network_str = generate_fully_train_val(int(sys.argv[1]))
 
     fp = open('trainval.template', 'w')
     fp.write(network_str)
