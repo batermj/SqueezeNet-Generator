@@ -34,7 +34,7 @@ def parse_args():
     return args
 
 def generate_data_layer():
-    data_layer_str = '''name: "B0ku1Net"
+    data_layer_str = '''name: "small_SqueezeNet"
 layer {
   name: "data"
   type: "Data"
@@ -51,8 +51,8 @@ layer {
     mean_value: 123
   }
   data_param {
-    source: "caffe/final_data"
-    batch_size: 20
+    source: "/ssd/dataset/ilsvrc12_train_lmdb/"
+    batch_size: 32
     backend: LMDB
   }
 }
@@ -72,8 +72,8 @@ layer {
     mean_value: 123
   }
   data_param {
-    source: "caffe/final_val"
-    batch_size: 10
+    source: "/ssd/dataset/ilsvrc12_val_lmdb/"
+    batch_size: 25
     backend: LMDB
   }
 }
@@ -253,8 +253,11 @@ def generate_typeA(layer_name, bottom, top, first_size, middle_size, batchNorm):
     a_str += generate_conv_layer(1, 2*middle_size, 1, 0, '%d/bypassConv'%layer_name, bottom, '%d/bypassConv'%layer_name)
     a_str += generate_activation_layer('%d/bypassRelu'%layer_name, '%d/bypassConv'%layer_name, '%d/bypassConv'%layer_name)
 
-    a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, '%d/bypassConv'%layer_name, '%d/Elt'%layer_name)
-    a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+    if batchNorm:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, '%d/bypassConv'%layer_name, '%d/Elt'%layer_name)
+      a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+    else:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, '%d/bypassConv'%layer_name, top)
 
     return a_str
 
@@ -289,8 +292,13 @@ def generate_typeB(layer_name, bottom, top, first_size, middle_size, batchNorm):
       end_of_branch3 = '%d/expand3x3'%layer_name
     a_str += generate_concat_layer('%d/concat'%layer_name, end_of_branch3, end_of_branch1, '%d/concat'%layer_name)
 
-    a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, bottom, '%d/Elt'%layer_name)
-    a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+
+    if batchNorm:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, bottom, '%d/Elt'%layer_name)
+      a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+    else:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, bottom, top)
+
 
     return a_str
 
