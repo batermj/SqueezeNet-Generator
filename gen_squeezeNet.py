@@ -319,14 +319,11 @@ def generate_typeB(layer_name, bottom, top, first_size, middle_size, batchNorm):
     return a_str
 
 
-def generate_fully_train_val(BatchNorm):
-    print "BatchNorm=", BatchNorm
+def generate_fully_train_val(BatchNorm, a, ratio):
+    
     network_str = generate_data_layer()
 
-    last_top = 'data'
-    '''before stage'''
-    last_top = 'data'
-    network_str += generate_conv_layer(7, 96, 2, 0, 'conv1', last_top, 'conv1')
+    network_str += generate_conv_layer(7, 96, 2, 0, 'conv1', 'data', 'conv1')
     if (BatchNorm):
       network_str += generate_bn_layer('conv1_bn', 'conv1', 'conv1_bn')
       network_str += generate_activation_layer('conv1_relu', 'conv1_bn', 'conv1_bn', 'ReLU')
@@ -335,24 +332,20 @@ def generate_fully_train_val(BatchNorm):
       network_str += generate_activation_layer('conv1_relu', 'conv1', 'conv1', 'ReLU')
       network_str += generate_pooling_layer(3, 2, 'MAX', 'pool1', 'conv1', 'pool1')
 
-        
-    network_str += generate_typeA(2, 'pool1', '2/end', 16, 64, BatchNorm)
-    network_str += generate_typeB(3, '2/end', '3/end', 16, 64, BatchNorm)
-    network_str += generate_typeA(4, '3/end', '4/end', 32, 128, BatchNorm)
-
+    network_str += generate_typeA(2, 'pool1', '2/end', a[0]/ratio, a[0], BatchNorm)
+    network_str += generate_typeB(3, '2/end', '3/end', a[0]/ratio, a[0], BatchNorm)
+    network_str += generate_typeA(4, '3/end', '4/end', a[1]/ratio, a[1], BatchNorm)
     network_str += generate_pooling_layer(3,2,'MAX', 'pool4', '4/end', 'pool4')
-
-    network_str += generate_typeB(5, 'pool4', '5/end', 32, 128, BatchNorm)
-    network_str += generate_typeA(6, '5/end', '6/end', 48, 192, BatchNorm)
-    network_str += generate_typeB(7, '6/end', '7/end', 48, 192, BatchNorm)
-    network_str += generate_typeA(8, '7/end', '8/end', 64, 256, BatchNorm) 
-
+    network_str += generate_typeB(5, 'pool4', '5/end', a[1]/ratio, a[1], BatchNorm)
+    network_str += generate_typeA(6, '5/end', '6/end', a[2]/ratio, a[2], BatchNorm)
+    network_str += generate_typeB(7, '6/end', '7/end', a[2]/ratio, a[2], BatchNorm)
+    network_str += generate_typeA(8, '7/end', '8/end', a[3]/ratio, a[3], BatchNorm) 
     network_str += generate_pooling_layer(3,2,'MAX', 'pool8', '8/end', 'pool8')
-    network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, BatchNorm)
+    network_str += generate_typeB(9, 'pool8', '9/end', a[3]/ratio, a[3], BatchNorm)
 
     if BatchNorm=='0' or BatchNorm==0:
       network_str += generate_dropout_layer('drop9', '9/end')
-    network_str += generate_conv_layer(1, 1000,1,0, 'conv_final', '9/end', 'conv_final', filler = 'gaussian')
+    network_str += generate_conv_layer(1, 1000, 1, 0, 'conv_final', '9/end', 'conv_final', filler = 'gaussian')
     
     if BatchNorm:
       network_str += generate_bn_layer('conv_final_bn', 'conv_final', 'conv_final_bn')
@@ -360,11 +353,7 @@ def generate_fully_train_val(BatchNorm):
       extra='_bn'
     else:
       network_str += generate_activation_layer('relu10', 'conv_final', 'conv_final')
-      extra=''
-      
-      
-
-
+      extra=''    
 
 
     network_str += '''
@@ -385,7 +374,13 @@ layer {
 
 
 def main():
-    network_str = generate_fully_train_val(int(sys.argv[1]))
+    a=[64, 128, 192, 256]
+    if sys.argv[2] == 'large':
+      ratio = 1.0
+    if sys.argv[2] == 'small':
+      ratio = 4.0
+    network_str = generate_fully_train_val(int(sys.argv[1]), a, ratio)
+    print "BatchNorm =", sys.argv[1], sys.argv[2]
 
     fp = open('trainval.template', 'w')
     fp.write(network_str)
