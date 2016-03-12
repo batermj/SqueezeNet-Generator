@@ -1,2 +1,0 @@
-# SqueezeNet-Generator
-SqueezeNet Generator

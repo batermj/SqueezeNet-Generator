@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 """
 Generate the SqueezeNet network.
 If you find SqueezeNet useful in your research, please consider citing the SqueezeNet paper:
@@ -34,25 +35,26 @@ def parse_args():
     return args
 
 def generate_data_layer():
-    data_layer_str = '''name: "B0ku1Net"
+    data_layer_str = '''
+name: "large_SqueezeNet"
 layer {
-  name: "data"
-  type: "Data"
-  top: "data"
-  top: "label"
-  include {
+    name: "data"
+    type: "Data"
+    top: "data"
+    top: "label"
+    include {
     phase: TRAIN
   }
   transform_param {
     mirror: true
-    crop_size: 64
+    crop_size: 227
     mean_value: 104
     mean_value: 117
     mean_value: 123
   }
   data_param {
-    source: "/ssd/dataset/ilsvrc12_train_lmdb"
-    batch_size: 30
+    source: "/ssd/dataset/ilsvrc12_train_lmdb/"
+    batch_size: {{batch_size}}
     backend: LMDB
   }
 }
@@ -66,14 +68,14 @@ layer {
   }
   transform_param {
     mirror: false
-    crop_size: 64
+    crop_size: 227
     mean_value: 104
     mean_value: 117
     mean_value: 123
   }
   data_param {
-    source: "/ssd/dataset/ilsvrc12_val_lmdb"
-    batch_size: 25
+    source: "/ssd/dataset/ilsvrc12_val_lmdb/"
+    batch_size: 10
     backend: LMDB
   }
 }
@@ -81,7 +83,14 @@ layer {
     return data_layer_str
 
 def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom, top, filler="xavier"):
-    conv_layer_str = '''layer {
+    tmp =''
+    if filler == 'gaussian':
+      tmp = '''      
+      mean: 0.0
+      std: 0.01
+      '''
+    conv_layer_str = '''
+layer {
   name: "%s"
   type: "Convolution"
   bottom: "%s"
@@ -101,17 +110,18 @@ def generate_conv_layer(kernel_size, kernel_num, stride, pad, layer_name, bottom
     stride: %d
     weight_filler {
       type: "%s"
-    }
+    ''' %(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler) + tmp + '''}
     bias_filler {
       type: "constant"
       value: 0
     }
   }
-}'''%(layer_name, bottom, top, kernel_num, pad, kernel_size, stride, filler)
+}'''
     return conv_layer_str
 
 def generate_pooling_layer(kernel_size, stride, pool_type, layer_name, bottom, top):
-    pool_layer_str = '''layer {
+    pool_layer_str = '''
+layer {
   name: "%s"
   type: "Pooling"
   bottom: "%s"
@@ -125,7 +135,8 @@ def generate_pooling_layer(kernel_size, stride, pool_type, layer_name, bottom, t
     return pool_layer_str
 
 def generate_eltwise_layer(layer_name, bottom_1, bottom_2, top, op_type="SUM"):
-    eltwise_layer_str = '''layer {
+    eltwise_layer_str = '''
+layer {
   name: "%s"
   type: "Eltwise"
   bottom: "%s"
@@ -138,7 +149,8 @@ def generate_eltwise_layer(layer_name, bottom_1, bottom_2, top, op_type="SUM"):
     return eltwise_layer_str
 
 def generate_activation_layer(layer_name, bottom, top, act_type="ReLU"):
-    act_layer_str = '''layer {
+    act_layer_str = '''
+layer {
   name: "%s"
   type: "%s"
   bottom: "%s"
@@ -147,7 +159,8 @@ def generate_activation_layer(layer_name, bottom, top, act_type="ReLU"):
     return act_layer_str
 
 def generate_softmax_loss(bottom):
-    softmax_loss_str = '''layer {
+    softmax_loss_str = '''
+layer {
   name: "loss"
   type: "SoftmaxWithLoss"
   bottom: "%s"
@@ -155,23 +168,23 @@ def generate_softmax_loss(bottom):
   top: "loss"
 }
 layer {
-  name: "acc/top-1"
+  name: "accuracy_top1"
   type: "Accuracy"
   bottom: "%s"
   bottom: "label"
-  top: "acc/top-1"
+  top: "accuracy_top1"
   include {
-    #phase: TEST
+    # phase: TEST
   }
 }
 layer {
-  name: "acc/top-5"
+  name: "accuracy_top5"
   type: "Accuracy"
   bottom: "%s"
   bottom: "label"
-  top: "acc/top-5"
+  top: "accuracy_top5"
   include {
-    #phase: TEST
+    # phase: TEST
   }
   accuracy_param {
     top_k: 5
@@ -180,7 +193,8 @@ layer {
     return softmax_loss_str
 
 def generate_bn_layer(layer_name, bottom, top):
-    bn_layer_str = '''layer {
+    bn_layer_str = '''
+layer {
   name: "%s"
   type: "BatchNorm"
   bottom: "%s"
@@ -198,7 +212,8 @@ def generate_bn_layer(layer_name, bottom, top):
     return bn_layer_str
 
 def generate_concat_layer(layer_name, bottom1, bottom2, top):
-    concat_layer_str = '''layer{
+    concat_layer_str = '''
+    layer{
     name: "%s"
     type: "Concat"
     bottom: "%s"
@@ -208,13 +223,14 @@ def generate_concat_layer(layer_name, bottom1, bottom2, top):
     return concat_layer_str
 
 def generate_dropout_layer(layer_name, bottom):
-    drop_str = '''layer{
+    drop_str = '''
+    layer{
       name: "%s"
       type: "Dropout"
       bottom: "%s"
       top: "%s"
       dropout_param {
-        dropout_ratio: 0.5
+        dropout_ratio: {{dropout}}
       }
     }'''%(layer_name, bottom, bottom)
     return drop_str
@@ -253,8 +269,11 @@ def generate_typeA(layer_name, bottom, top, first_size, middle_size, batchNorm):
     a_str += generate_conv_layer(1, 2*middle_size, 1, 0, '%d/bypassConv'%layer_name, bottom, '%d/bypassConv'%layer_name)
     a_str += generate_activation_layer('%d/bypassRelu'%layer_name, '%d/bypassConv'%layer_name, '%d/bypassConv'%layer_name)
 
-    a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, '%d/bypassConv'%layer_name, '%d/Elt'%layer_name)
-    a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+    if batchNorm:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, '%d/bypassConv'%layer_name, '%d/Elt'%layer_name)
+      a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+    else:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, '%d/bypassConv'%layer_name, top)
 
     return a_str
 
@@ -289,26 +308,35 @@ def generate_typeB(layer_name, bottom, top, first_size, middle_size, batchNorm):
       end_of_branch3 = '%d/expand3x3'%layer_name
     a_str += generate_concat_layer('%d/concat'%layer_name, end_of_branch3, end_of_branch1, '%d/concat'%layer_name)
 
-    a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, bottom, '%d/Elt'%layer_name)
-    a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+
+    if batchNorm:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, bottom, '%d/Elt'%layer_name)
+      a_str += generate_bn_layer('%d/EltBN'%layer_name, '%d/Elt'%layer_name, top)
+    else:
+      a_str += generate_eltwise_layer('bypass_%d'%layer_name, '%d/concat'%layer_name, bottom, top)
+
 
     return a_str
 
 
 def generate_fully_train_val(BatchNorm):
+    print "BatchNorm=", BatchNorm
     network_str = generate_data_layer()
 
     last_top = 'data'
     '''before stage'''
     last_top = 'data'
-    network_str += generate_conv_layer(7, 64, 2, 0, 'conv1', last_top, 'conv1')
-    network_str += generate_bn_layer('conv1_bn', 'conv1', 'conv1_bn')
-    network_str += generate_activation_layer('conv1_relu', 'conv1_bn', 'conv1_bn', 'ReLU')
-    network_str += generate_pooling_layer(3, 2, 'MAX', 'pool1', 'conv1_bn', 'pool1')
+    network_str += generate_conv_layer(7, 96, 2, 0, 'conv1', last_top, 'conv1')
+    if (BatchNorm):
+      network_str += generate_bn_layer('conv1_bn', 'conv1', 'conv1_bn')
+      network_str += generate_activation_layer('conv1_relu', 'conv1_bn', 'conv1_bn', 'ReLU')
+      network_str += generate_pooling_layer(3, 2, 'MAX', 'pool1', 'conv1_bn', 'pool1')
+    else:
+      network_str += generate_activation_layer('conv1_relu', 'conv1', 'conv1', 'ReLU')
+      network_str += generate_pooling_layer(3, 2, 'MAX', 'pool1', 'conv1', 'pool1')
 
-    '''stage 1'''
-    last_top = 'pool1'
-    network_str += generate_typeA(2, last_top, '2/end', 16, 64, BatchNorm)
+        
+    network_str += generate_typeA(2, 'pool1', '2/end', 16, 64, BatchNorm)
     network_str += generate_typeB(3, '2/end', '3/end', 16, 64, BatchNorm)
     network_str += generate_typeA(4, '3/end', '4/end', 32, 128, BatchNorm)
 
@@ -322,35 +350,44 @@ def generate_fully_train_val(BatchNorm):
     network_str += generate_pooling_layer(3,2,'MAX', 'pool8', '8/end', 'pool8')
     network_str += generate_typeB(9, 'pool8', '9/end', 64, 256, BatchNorm)
 
-    network_str += generate_typeA(10, '9/end', '10/end', 96, 384, BatchNorm)
-    network_str += generate_typeB(11, '10/end', '11/end', 96, 384, BatchNorm)
-    network_str += generate_typeA(12, '11/end', '12/end', 128, 512, BatchNorm) 
-    network_str += generate_typeB(13, '12/end', '13/end', 128, 512, BatchNorm)    
+    if BatchNorm=='0' or BatchNorm==0:
+      network_str += generate_dropout_layer('drop9', '9/end')
+    network_str += generate_conv_layer(1, 1000,1,0, 'conv_final', '9/end', 'conv_final', filler = 'gaussian')
+    
+    if BatchNorm:
+      network_str += generate_bn_layer('conv_final_bn', 'conv_final', 'conv_final_bn')
+      network_str += generate_activation_layer('relu10', 'conv_final_bn', 'conv_final_bn')
+      extra='_bn'
+    else:
+      network_str += generate_activation_layer('relu10', 'conv_final', 'conv_final')
+      extra=''
+      
+      
 
 
-    network_str += generate_dropout_layer('drop9', '13/end')
-    network_str += generate_conv_layer(1,200,1,0, 'conv10', '13/end', 'conv10')
-    network_str += generate_activation_layer('relu10', 'conv10', 'conv10')
-    network_str += '''layer {
+
+
+    network_str += '''
+layer {
       name: "pool10"
       type: "Pooling"
-      bottom: "conv10"
+      bottom: "conv_final%s"
       top: "pool10"
       pooling_param {
         pool: AVE
         global_pooling: true
       }
     }
-    '''
+    ''' %extra
     network_str += generate_softmax_loss('pool10')
 
     return network_str
 
 
 def main():
-    network_str = generate_fully_train_val(True)
+    network_str = generate_fully_train_val(int(sys.argv[1]))
 
-    fp = open('train.prototxt', 'w')
+    fp = open('trainval.template', 'w')
     fp.write(network_str)
     fp.close()
 
