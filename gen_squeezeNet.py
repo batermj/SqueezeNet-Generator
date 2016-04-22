@@ -54,7 +54,7 @@ layer {
   }
   data_param {
     source: "/ssd/dataset/ilsvrc12_train_lmdb/"
-    batch_size: {{batch_size}}
+    batch_size: {{batch_size_train}}
     backend: LMDB
   }
 }
@@ -75,7 +75,7 @@ layer {
   }
   data_param {
     source: "/ssd/dataset/ilsvrc12_val_lmdb/"
-    batch_size: 10
+    batch_size: {{batch_size_val}}
     backend: LMDB
   }
 }
